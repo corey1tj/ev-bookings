@@ -1,4 +1,8 @@
-import { getLocation, getChargePointEVSEs } from "@/lib/ampeco";
+import {
+  getLocation,
+  getChargePoints,
+  getChargePointEVSEs,
+} from "@/lib/ampeco";
 import BookingForm from "@/components/BookingForm";
 import { notFound } from "next/navigation";
 
@@ -20,31 +24,43 @@ export default async function SiteDetailPage({ params }: Props) {
     notFound();
   }
 
-  // TODO: Ampeco API may require fetching charge points for this location first,
-  // then iterating to get EVSEs. Adjust once exact API shape is confirmed.
-  // For now, this assumes we can derive bookable EVSEs from the location.
-  const ports: { evseId: number; networkId: string; connectorType: string; maxPowerKw: number }[] = [];
+  // Fetch charge points for this location, then EVSEs per charge point
+  const ports: {
+    evseId: number;
+    networkId: string;
+    connectorType: string;
+    maxPowerKw: number;
+  }[] = [];
 
-  // Placeholder: replace with actual charge point → EVSE fetch chain
-  // const chargePoints = await getChargePointsForLocation(siteId);
-  // for (const cp of chargePoints) {
-  //   const evses = await getChargePointEVSEs(cp.id);
-  //   for (const evse of evses.data) {
-  //     if (evse.bookingEnabled) {
-  //       ports.push({
-  //         evseId: evse.id,
-  //         networkId: evse.networkId,
-  //         connectorType: evse.connectorType,
-  //         maxPowerKw: evse.maxPowerKw,
-  //       });
-  //     }
-  //   }
-  // }
+  try {
+    const chargePointsRes = await getChargePoints(siteId);
+    const evseResults = await Promise.all(
+      chargePointsRes.data.map((cp) => getChargePointEVSEs(cp.id))
+    );
+    for (const evseRes of evseResults) {
+      for (const evse of evseRes.data) {
+        if (evse.bookingEnabled) {
+          ports.push({
+            evseId: evse.id,
+            networkId: evse.networkId,
+            connectorType: evse.connectorType,
+            maxPowerKw: evse.maxPowerKw,
+          });
+        }
+      }
+    }
+  } catch {
+    // If charge point fetch fails, proceed with empty ports —
+    // BookingForm will show a "no chargers" message.
+  }
 
   return (
     <div>
-      <a href="/sites" className="mb-4 inline-block text-sm text-blue-600 hover:underline">
-        ← Back to sites
+      <a
+        href="/sites"
+        className="mb-4 inline-block text-sm text-blue-600 hover:underline"
+      >
+        &larr; Back to sites
       </a>
       <div className="mb-2 text-sm text-gray-500">
         {location.address}, {location.city}, {location.state}

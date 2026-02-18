@@ -5,6 +5,7 @@ import {
   findUserByEmail,
   getBookings,
   AmpecoError,
+  EvseAvailability,
 } from "@/lib/ampeco";
 
 export async function GET(req: NextRequest) {
@@ -67,14 +68,58 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Check availability
-    await checkBookingAvailability(locationId, {
+    const availability = await checkBookingAvailability(locationId, {
       startAfter: startAt,
       endBefore: endAt,
     });
 
-    // TODO: parse availability response to confirm the requested slot is open.
-    // The response returns available slots per EVSE — need to verify the
-    // requested evseId (or any EVSE) has an open slot in the requested window.
+    // Validate the requested slot is actually available.
+    // The response contains available slots per EVSE.
+    if (availability.data && Array.isArray(availability.data)) {
+      const requestedStart = new Date(startAt).getTime();
+      const requestedEnd = new Date(endAt).getTime();
+
+      function evseHasSlot(evse: EvseAvailability): boolean {
+        if (!evse.availableSlots || !Array.isArray(evse.availableSlots)) {
+          return false;
+        }
+        return evse.availableSlots.some((slot) => {
+          const slotStart = new Date(slot.startAt).getTime();
+          const slotEnd = new Date(slot.endAt).getTime();
+          return slotStart <= requestedStart && slotEnd >= requestedEnd;
+        });
+      }
+
+      if (evseId) {
+        // Specific EVSE requested — check that one
+        const evseData = availability.data.find(
+          (e: EvseAvailability) => e.evseId === evseId
+        );
+        if (!evseData || !evseHasSlot(evseData)) {
+          return NextResponse.json(
+            {
+              error: "Slot unavailable",
+              message:
+                "The selected charger is not available for the requested time. Please choose a different time or charger.",
+            },
+            { status: 409 }
+          );
+        }
+      } else {
+        // No specific EVSE — check if any EVSE has the slot
+        const anyAvailable = availability.data.some(evseHasSlot);
+        if (!anyAvailable) {
+          return NextResponse.json(
+            {
+              error: "Slot unavailable",
+              message:
+                "No chargers are available for the requested time. Please choose a different time.",
+            },
+            { status: 409 }
+          );
+        }
+      }
+    }
 
     // 3. Create booking request with type: "create"
     const bookingRes = await createBookingRequest({

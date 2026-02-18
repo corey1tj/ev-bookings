@@ -62,6 +62,14 @@ export interface AmpecoLocation {
   [key: string]: unknown;
 }
 
+// Charge Points (v2.0)
+export interface AmpecoChargePoint {
+  id: number;
+  locationId: number;
+  name?: string;
+  [key: string]: unknown;
+}
+
 // EVSEs (v2.0 via charge point)
 export interface AmpecoEVSE {
   id: number;
@@ -193,6 +201,14 @@ export async function getLocation(
 
 // ─── Charge Points & EVSEs ───────────────────────────────
 
+export async function getChargePoints(
+  locationId: number
+): Promise<PaginatedResponse<AmpecoChargePoint>> {
+  return request(
+    `/resources/charge-points/v2.0?filter[locationId]=${locationId}`
+  );
+}
+
 export async function getChargePointEVSEs(
   chargePointId: number
 ): Promise<PaginatedResponse<AmpecoEVSE>> {
@@ -203,10 +219,25 @@ export async function getChargePointEVSEs(
 // Returns available time slots for each bookable EVSE at the location.
 // Time frame limited to 7 days max.
 
+export interface AvailabilitySlot {
+  startAt: string;
+  endAt: string;
+}
+
+export interface EvseAvailability {
+  evseId: number;
+  availableSlots: AvailabilitySlot[];
+  [key: string]: unknown;
+}
+
+export interface AvailabilityResponse {
+  data: EvseAvailability[];
+}
+
 export async function checkBookingAvailability(
   locationId: number,
   params: AvailabilityRequest
-) {
+): Promise<AvailabilityResponse> {
   return request(
     `/actions/locations/v2.0/${locationId}/check-booking-availability`,
     {
