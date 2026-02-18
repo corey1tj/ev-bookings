@@ -107,23 +107,31 @@ export default function BookingForm({ siteId, siteName, ports }: BookingFormProp
       {/* Port selection */}
       <fieldset>
         <legend className="mb-2 font-medium">Select a charger</legend>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {ports.map((port) => (
-            <button
-              key={port.evseId}
-              type="button"
-              onClick={() => setSelectedPort(port.evseId)}
-              className={`rounded-lg border p-3 text-left text-sm transition ${
-                selectedPort === port.evseId
-                  ? "border-blue-600 bg-blue-50 ring-2 ring-blue-600"
-                  : "hover:border-gray-400"
-              }`}
-            >
-              <div className="font-medium">{port.connectorType}</div>
-              <div className="text-gray-500">{port.maxPowerKw} kW</div>
-            </button>
-          ))}
-        </div>
+        {ports.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            No bookable chargers available at this location.
+          </p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {ports.map((port) => (
+              <button
+                key={port.evseId}
+                type="button"
+                onClick={() => setSelectedPort(port.evseId)}
+                className={`rounded-lg border p-3 text-left text-sm transition ${
+                  selectedPort === port.evseId
+                    ? "border-blue-600 bg-blue-50 ring-2 ring-blue-600"
+                    : "hover:border-gray-400"
+                }`}
+              >
+                <div className="font-medium">{port.connectorType}</div>
+                <div className="text-gray-500">
+                  {port.maxPowerKw} kW &middot; {port.networkId}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </fieldset>
 
       {/* Date & Time */}
