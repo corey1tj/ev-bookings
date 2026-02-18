@@ -1,0 +1,74 @@
+# Future Energy — EV Charging Bookings
+
+Public booking UI and admin console for Future Energy's EV charging network. Thin layer on top of [Ampeco's Bookings API](https://developers.ampeco.com).
+
+## Architecture
+
+```
+Next.js (App Router)
+  ├── /sites          → Browse bookable locations
+  ├── /sites/:id      → Pick time + charger → confirm booking
+  ├── /bookings/:id   → Booking confirmation
+  ├── /admin          → Admin console (list, cancel, modify)
+  └── /api/*          → Proxy routes to Ampeco (keeps token server-side)
+```
+
+No database. Ampeco is the source of truth for all booking data.
+
+## Setup
+
+```bash
+npm install
+cp .env.example .env
+# Fill in AMPECO_API_URL, AMPECO_API_TOKEN, and ADMIN_PASSWORD
+npm run dev
+```
+
+## Environment Variables
+
+| Variable | Description |
+|---|---|
+| `AMPECO_API_URL` | Ampeco API base URL (e.g., `https://your-instance.ampeco.tech/public-api`) |
+| `AMPECO_API_TOKEN` | Ampeco bearer token with booking permissions |
+| `ADMIN_PASSWORD` | Shared secret for admin console access |
+
+## Deploy to Netlify
+
+1. Connect this repo to Netlify
+2. Set environment variables in Netlify dashboard
+3. Build command: `npm run build`
+4. Publish directory: `.next`
+5. Netlify's Next.js plugin handles the rest
+
+## Project Structure
+
+```
+src/
+  app/
+    api/
+      sites/              → GET /api/sites
+      sites/[siteId]/
+        availability/     → GET /api/sites/:id/availability
+      bookings/           → GET, POST /api/bookings
+      bookings/[id]/      → GET /api/bookings/:id
+      admin/bookings/     → GET /api/admin/bookings (auth required)
+      admin/bookings/[id]/
+        cancel/           → POST /api/admin/bookings/:id/cancel
+    sites/                → Public site list page
+    sites/[siteId]/       → Site detail + booking form
+    bookings/[id]/        → Booking confirmation page
+    admin/                → Admin console
+  lib/
+    ampeco.ts             → Typed Ampeco API client
+    admin-auth.ts         → Simple admin auth helper
+  components/
+    BookingForm.tsx       → Client-side booking form
+```
+
+## TODOs (Sprint 0)
+
+- [ ] Confirm Ampeco booking API permissions with CSM
+- [ ] Confirm `bookingEnabled` flag is set on target EVSEs
+- [ ] Confirm EVSE access restriction behavior during active bookings
+- [ ] Wire up charge point → EVSE fetch chain in site detail page
+- [ ] Confirm Ampeco cancel booking endpoint and wire into admin
