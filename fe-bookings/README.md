@@ -32,13 +32,12 @@ npm run dev
 | `AMPECO_API_TOKEN` | Ampeco bearer token with booking permissions |
 | `ADMIN_PASSWORD` | Shared secret for admin console access |
 
-## Deploy to Netlify
+## Deploy to Vercel
 
-1. Connect this repo to Netlify
-2. Set environment variables in Netlify dashboard
-3. Build command: `npm run build`
-4. Publish directory: `.next`
-5. Netlify's Next.js plugin handles the rest
+1. Connect this repo to Vercel
+2. Set root directory to `fe-bookings`
+3. Set environment variables in Vercel dashboard
+4. Vercel auto-detects Next.js — no additional config needed
 
 ## Project Structure
 

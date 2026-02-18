@@ -17,7 +17,6 @@ ev-bookings/
     ├── tailwind.config.ts
     ├── next.config.js
     ├── postcss.config.js
-    ├── netlify.toml                # Netlify deployment config
     ├── README.md                   # Detailed project docs, API notes, sprint TODOs
     └── src/
         ├── app/                    # Next.js App Router
@@ -58,7 +57,7 @@ ev-bookings/
 - **Framework:** Next.js 14 (App Router)
 - **Language:** TypeScript (strict mode)
 - **Styling:** Tailwind CSS 3.4
-- **Deployment:** Netlify (with `@netlify/plugin-nextjs`)
+- **Deployment:** Vercel
 - **External API:** Ampeco public API (bookings, locations, users)
 - **Tests:** None yet
 - **Database:** None — Ampeco is the source of truth
@@ -177,6 +176,6 @@ These are documented in `fe-bookings/README.md` under Sprint 0:
 - Types: PascalCase prefixed with `Ampeco` for API types (e.g. `AmpecoLocation`).
 
 ### Deployment
-- Netlify with the `@netlify/plugin-nextjs` plugin.
-- Build command: `npm run build` from the `fe-bookings/` directory.
-- Publish directory: `.next`.
+- Vercel with automatic Next.js detection.
+- Root directory set to `fe-bookings/`.
+- Build command: `npm run build` (auto-detected).
