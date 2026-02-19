@@ -337,4 +337,57 @@ export async function findUserByEmail(
   return res.data.length > 0 ? res.data[0] : null;
 }
 
+// ─── Helpers ────────────────────────────────────────────
+
+/**
+ * Fetch all booking-enabled EVSEs for a location.
+ * Resolves Location → Charge Points → EVSEs, returning only
+ * EVSEs where bookingEnabled is true.
+ */
+export async function getBookableEVSEs(
+  locationId: number
+): Promise<AmpecoEVSE[]> {
+  const chargePointsRes = await getChargePoints(locationId);
+  const evseResults = await Promise.all(
+    chargePointsRes.data.map((cp) => getChargePointEVSEs(cp.id))
+  );
+  const bookable: AmpecoEVSE[] = [];
+  for (const evseRes of evseResults) {
+    for (const evse of evseRes.data) {
+      if (evse.bookingEnabled) {
+        bookable.push(evse);
+      }
+    }
+  }
+  return bookable;
+}
+
+/**
+ * Return only locations that have at least one booking-enabled EVSE.
+ * Checks all locations in parallel. Fail-open: if EVSE fetch fails
+ * for a location, that location is included rather than hidden.
+ */
+export async function getLocationsWithBookableEVSEs(): Promise<
+  AmpecoLocation[]
+> {
+  const locationsRes = await getLocations();
+  const locations = locationsRes.data;
+
+  const results = await Promise.allSettled(
+    locations.map(async (loc) => {
+      const evses = await getBookableEVSEs(loc.id);
+      return { location: loc, hasBookable: evses.length > 0 };
+    })
+  );
+
+  const filtered: AmpecoLocation[] = [];
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    if (r.status === "rejected" || r.value.hasBookable) {
+      filtered.push(locations[i]);
+    }
+  }
+  return filtered;
+}
+
 export { AmpecoError };

@@ -1,13 +1,12 @@
 import Link from "next/link";
-import { getLocations, localized } from "@/lib/ampeco";
+import { getLocationsWithBookableEVSEs, localized } from "@/lib/ampeco";
 
 export const dynamic = "force-dynamic";
 
 export default async function SitesPage() {
   let locations;
   try {
-    const res = await getLocations();
-    locations = res.data;
+    locations = await getLocationsWithBookableEVSEs();
   } catch {
     return (
       <div className="rounded border border-red-200 bg-red-50 p-4 text-red-800">

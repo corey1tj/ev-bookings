@@ -1,7 +1,6 @@
 import {
   getLocation,
-  getChargePoints,
-  getChargePointEVSEs,
+  getBookableEVSEs,
   localized,
 } from "@/lib/ampeco";
 import BookingForm from "@/components/BookingForm";
@@ -25,8 +24,8 @@ export default async function SiteDetailPage({ params }: Props) {
     notFound();
   }
 
-  // Fetch charge points for this location, then EVSEs per charge point
-  const ports: {
+  // Fetch booking-enabled EVSEs for this location
+  let ports: {
     evseId: number;
     networkId: string;
     connectorType: string;
@@ -34,22 +33,13 @@ export default async function SiteDetailPage({ params }: Props) {
   }[] = [];
 
   try {
-    const chargePointsRes = await getChargePoints(siteId);
-    const evseResults = await Promise.all(
-      chargePointsRes.data.map((cp) => getChargePointEVSEs(cp.id))
-    );
-    for (const evseRes of evseResults) {
-      for (const evse of evseRes.data) {
-        if (evse.bookingEnabled) {
-          ports.push({
-            evseId: evse.id,
-            networkId: evse.networkId,
-            connectorType: evse.connectorType,
-            maxPowerKw: evse.maxPowerKw,
-          });
-        }
-      }
-    }
+    const bookableEVSEs = await getBookableEVSEs(siteId);
+    ports = bookableEVSEs.map((evse) => ({
+      evseId: evse.id,
+      networkId: evse.networkId,
+      connectorType: evse.connectorType,
+      maxPowerKw: evse.maxPowerKw,
+    }));
   } catch {
     // If charge point fetch fails, proceed with empty ports —
     // BookingForm will show a "no chargers" message.
