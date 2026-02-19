@@ -21,7 +21,11 @@ export default async function SitesPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">Book EV Charging</h1>
+      <h1 className="mb-2 text-2xl font-bold">Book EV Charging</h1>
+      <p className="mb-6 text-gray-600">
+        Browse Future Energy charging locations, choose an available charger and
+        time slot, and reserve your session in advance.
+      </p>
       <div className="grid gap-4 sm:grid-cols-2">
         {locations.map((loc) => (
           <Link
