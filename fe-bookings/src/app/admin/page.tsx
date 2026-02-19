@@ -1,15 +1,34 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import AdminBookingModal from "@/components/AdminBookingModal";
+
+interface BookingLocation {
+  name: string;
+  city: string;
+  state: string;
+  timezone: string;
+}
+
+interface BookingEvse {
+  chargePointName: string;
+  label?: string;
+  physicalReference?: string;
+  connectorType: string;
+  maxPowerKw: number;
+  currentType: string;
+}
 
 interface Booking {
   id: number;
   locationId: number;
-  evseId: number;
+  evseId: number | null;
   userId: number;
   startAt: string;
   endAt: string;
   status: string;
+  location: BookingLocation | null;
+  evse: BookingEvse | null;
   [key: string]: unknown;
 }
 
@@ -19,6 +38,8 @@ export default function AdminPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
 
   const fetchBookings = useCallback(async () => {
     setLoading(true);
@@ -103,13 +124,21 @@ export default function AdminPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Admin Console</h1>
-        <button
-          onClick={fetchBookings}
-          disabled={loading}
-          className="rounded border px-3 py-1 text-sm hover:bg-gray-100"
-        >
-          {loading ? "Loading…" : "Refresh"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Create Booking
+          </button>
+          <button
+            onClick={fetchBookings}
+            disabled={loading}
+            className="rounded border px-3 py-1 text-sm hover:bg-gray-100"
+          >
+            {loading ? "Loading…" : "Refresh"}
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -125,9 +154,10 @@ export default function AdminPage() {
           <table className="w-full text-left text-sm">
             <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
               <tr>
-                <th className="px-4 py-3">ID</th>
+                <th className="px-4 py-3">Booking ID</th>
                 <th className="px-4 py-3">Location</th>
-                <th className="px-4 py-3">EVSE</th>
+                <th className="px-4 py-3">Charger</th>
+                <th className="px-4 py-3">EVSE ID</th>
                 <th className="px-4 py-3">Start</th>
                 <th className="px-4 py-3">End</th>
                 <th className="px-4 py-3">Status</th>
@@ -138,8 +168,33 @@ export default function AdminPage() {
               {bookings.map((b) => (
                 <tr key={b.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-mono text-xs">{b.id}</td>
-                  <td className="px-4 py-3">{b.locationId}</td>
-                  <td className="px-4 py-3">{b.evseId}</td>
+                  <td className="px-4 py-3">
+                    {b.location ? (
+                      <div>
+                        <div className="font-medium">{b.location.name}</div>
+                        <div className="text-xs text-gray-500">
+                          {b.location.city}, {b.location.state}
+                        </div>
+                      </div>
+                    ) : (
+                      b.locationId
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {b.evse ? (
+                      <div>
+                        <div className="font-medium">{b.evse.chargePointName}</div>
+                        {b.evse.label && (
+                          <div className="text-xs text-gray-600">{b.evse.label}</div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs italic text-gray-400">Auto-Assigned</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs">
+                    {b.evse?.physicalReference ?? (b.evseId ? b.evseId : <span className="font-sans italic text-gray-400">Auto-Assigned</span>)}
+                  </td>
                   <td className="px-4 py-3">
                     {new Date(b.startAt).toLocaleString()}
                   </td>
@@ -161,12 +216,20 @@ export default function AdminPage() {
                   </td>
                   <td className="px-4 py-3">
                     {(b.status === "accepted" || b.status === "reserved") && (
-                      <button
-                        onClick={() => handleCancel(b.id)}
-                        className="text-xs text-red-600 hover:underline"
-                      >
-                        Cancel
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEditingBooking(b)}
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleCancel(b.id)}
+                          className="text-xs text-red-600 hover:underline"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -174,6 +237,38 @@ export default function AdminPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {showCreateModal && (
+        <AdminBookingModal
+          mode="create"
+          authToken={password}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            setShowCreateModal(false);
+            fetchBookings();
+          }}
+        />
+      )}
+
+      {editingBooking && (
+        <AdminBookingModal
+          mode="edit"
+          authToken={password}
+          booking={{
+            id: editingBooking.id,
+            locationId: editingBooking.locationId,
+            evseId: editingBooking.evseId,
+            startAt: editingBooking.startAt,
+            endAt: editingBooking.endAt,
+            locationTimezone: editingBooking.location?.timezone,
+          }}
+          onClose={() => setEditingBooking(null)}
+          onSuccess={() => {
+            setEditingBooking(null);
+            fetchBookings();
+          }}
+        />
       )}
     </div>
   );

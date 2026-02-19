@@ -21,7 +21,10 @@ export default function RootLayout({
             </a>
             <nav className="flex gap-4 text-sm">
               <a href="/sites" className="hover:underline">
-                Book a Charger
+                Locations
+              </a>
+              <a href="/admin" className="hover:underline">
+                Admin
               </a>
             </nav>
           </div>
