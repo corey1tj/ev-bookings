@@ -1,0 +1,34 @@
+Location Visibility Criteria
+1. Ampeco API returns it — getLocations() calls /resources/locations/v2.0. Only locations that Ampeco considers active/published are returned. No client-side filtering is applied on the sites list page (fe-bookings/src/app/sites/page.tsx). Every location Ampeco returns is displayed.
+
+2. EVSE bookingEnabled: true — This is the key filter. On the site detail page (fe-bookings/src/app/sites/[siteId]/page.tsx:43-50), all charge points for a location are fetched, then all EVSEs per charge point are fetched, and only EVSEs with bookingEnabled: true are included. If zero EVSEs pass this filter, the BookingForm displays "No bookable chargers available at this location."
+
+3. Time slot availability from Ampeco — When a booking is actually submitted, POST /api/bookings (fe-bookings/src/app/api/bookings/route.ts:70-122) calls checkBookingAvailability() on the Ampeco API. The requested time range must fit entirely within an available slot (slotStart <= requestedStart && slotEnd >= requestedEnd). If a specific EVSE was selected, that EVSE must have the slot; otherwise any EVSE at the location must have it.
+
+4. Driver must have an Ampeco account — The driver's email is looked up via findUserByEmail(). If no matching user exists in Ampeco, booking is rejected with a no_account error.
+
+5. Client-side: date must be today or future — The date picker in BookingForm.tsx:179 sets min to today's date.
+
+6. Ampeco enforces a 7-day max window for availability queries.
+
+In short: A location appears on the list if Ampeco returns it from the locations endpoint. It becomes bookable if it has at least one EVSE with bookingEnabled: true, and the specific time slot requested is confirmed available by Ampeco's availability check. There is no additional filtering logic in this codebase beyond what Ampeco provides — Ampeco is the sole source of truth.
+
+Let me write this up as the plan file and exit plan mode.
+
+
+Approved research plan for Ampeco location availability criteria investigation
+Approved research plan for Ampeco location availability criteria investigation
+
+This was a research question, so no code changes are needed. The findings are captured above. To recap the key points:
+
+A location shows up in the list purely because Ampeco returns it from the locations API — there's no filtering in this codebase at the location level.
+
+A location becomes bookable when it has at least one EVSE with bookingEnabled: true — the only filter this codebase applies on its own (fe-bookings/src/app/sites/[siteId]/page.tsx:43-50).
+
+A booking succeeds when Ampeco's availability check confirms the time slot is open, and the driver has an existing Ampeco account.
+
+So if a location isn't appearing or isn't bookable, the things to check on the Ampeco side are:
+
+Is the location active/published in Ampeco?
+Does it have charge points with EVSEs that have bookingEnabled: true?
+Are there available time slots configured for those EVSEs?
