@@ -159,7 +159,7 @@ export default function BookingForm({ siteId, siteName, ports, siteTimezone }: B
               >
                 <div className="font-medium">{port.connectorType}</div>
                 <div className="text-gray-500">
-                  {port.maxPowerKw} kW &middot; {port.networkId}
+                  {port.maxPowerKw} kW &middot; {port.networkId} &middot; EVSE {port.evseId}
                 </div>
               </button>
             ))}
