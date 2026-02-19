@@ -64,6 +64,22 @@ src/
     BookingForm.tsx       → Client-side booking form
 ```
 
+## API Call Patterns
+
+### `/sites` — Location listing page
+
+The sites page filters locations to only show those with bookable chargers. Because Ampeco has no single endpoint for this, the page resolves a chain of calls:
+
+1. `getLocations()` — 1 call to fetch all locations
+2. `getChargePoints(locationId)` — 1 call **per location** (N calls)
+3. `getChargePointEVSEs(chargePointId)` — 1 call **per charge point** (N x M calls)
+
+**Total: `1 + N + (N x M)`** where N = number of locations, M = average charge points per location.
+
+Example: 10 locations with 3 charge points each = **41 API calls** per page load.
+
+All location-level calls run in parallel via `Promise.allSettled`. A `loading.tsx` skeleton is shown while data loads.
+
 ## TODOs (Sprint 0)
 
 - [ ] Confirm Ampeco booking API permissions with CSM
