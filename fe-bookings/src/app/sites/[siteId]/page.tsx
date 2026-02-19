@@ -66,7 +66,7 @@ export default async function SiteDetailPage({ params }: Props) {
       <div className="mb-2 text-sm text-gray-500">
         {localized(location.address)}, {location.city}, {location.state}
       </div>
-      <BookingForm siteId={siteId} siteName={localized(location.name)} ports={ports} />
+      <BookingForm siteId={siteId} siteName={localized(location.name)} ports={ports} siteTimezone={location.timezone} />
     </div>
   );
 }

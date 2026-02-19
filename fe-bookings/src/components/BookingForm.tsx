@@ -14,15 +14,48 @@ interface BookingFormProps {
   siteId: number;
   siteName: string;
   ports: Port[];
+  siteTimezone: string;
 }
 
-export default function BookingForm({ siteId, siteName, ports }: BookingFormProps) {
+const COMMON_TIMEZONES = [
+  { value: "America/New_York", label: "Eastern Time (ET)" },
+  { value: "America/Chicago", label: "Central Time (CT)" },
+  { value: "America/Denver", label: "Mountain Time (MT)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time (HT)" },
+  { value: "Europe/London", label: "London (GMT/BST)" },
+  { value: "Europe/Paris", label: "Central European (CET)" },
+  { value: "Asia/Tokyo", label: "Japan (JST)" },
+  { value: "Australia/Sydney", label: "Sydney (AEST)" },
+  { value: "UTC", label: "UTC" },
+];
+
+/**
+ * Convert a local date + time in a named timezone to a UTC Date object.
+ * Uses the Intl API to determine the correct UTC offset (DST-aware).
+ */
+function toUTCDate(dateStr: string, timeStr: string, timezone: string): Date {
+  const utcGuess = new Date(`${dateStr}T${timeStr}:00Z`);
+  const utcRepr = new Date(utcGuess.toLocaleString("en-US", { timeZone: "UTC" }));
+  const tzRepr = new Date(utcGuess.toLocaleString("en-US", { timeZone: timezone }));
+  const offsetMs = utcRepr.getTime() - tzRepr.getTime();
+  return new Date(utcGuess.getTime() + offsetMs);
+}
+
+export default function BookingForm({ siteId, siteName, ports, siteTimezone }: BookingFormProps) {
   const router = useRouter();
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [duration, setDuration] = useState("60");
   const [selectedPort, setSelectedPort] = useState<number | null>(null);
   const [email, setEmail] = useState("");
+  const [timezone, setTimezone] = useState(siteTimezone);
+
+  // Build timezone options, ensuring the site timezone is always included
+  const timezoneOptions = COMMON_TIMEZONES.some((tz) => tz.value === siteTimezone)
+    ? COMMON_TIMEZONES
+    : [{ value: siteTimezone, label: `Site (${siteTimezone})` }, ...COMMON_TIMEZONES];
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [noAccount, setNoAccount] = useState(false);
@@ -34,10 +67,10 @@ export default function BookingForm({ siteId, siteName, ports }: BookingFormProp
     setLoading(true);
     setError(null);
 
-    const startAt = `${date}T${startTime}:00`;
-    const endDate = new Date(startAt);
-    endDate.setMinutes(endDate.getMinutes() + parseInt(duration));
-    const endAt = endDate.toISOString();
+    const utcStart = toUTCDate(date, startTime, timezone);
+    const utcEnd = new Date(utcStart.getTime() + parseInt(duration) * 60_000);
+    const startAt = utcStart.toISOString();
+    const endAt = utcEnd.toISOString();
 
     try {
       const res = await fetch("/api/bookings", {
@@ -135,7 +168,7 @@ export default function BookingForm({ siteId, siteName, ports }: BookingFormProp
       </fieldset>
 
       {/* Date & Time */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <label className="block">
           <span className="mb-1 block text-sm font-medium">Date</span>
           <input
@@ -169,6 +202,20 @@ export default function BookingForm({ siteId, siteName, ports }: BookingFormProp
             <option value="120">2 hours</option>
             <option value="180">3 hours</option>
             <option value="240">4 hours</option>
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium">Time zone</span>
+          <select
+            value={timezone}
+            onChange={(e) => setTimezone(e.target.value)}
+            className="w-full rounded border px-3 py-2"
+          >
+            {timezoneOptions.map((tz) => (
+              <option key={tz.value} value={tz.value}>
+                {tz.label}
+              </option>
+            ))}
           </select>
         </label>
       </div>
