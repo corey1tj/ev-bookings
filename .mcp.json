@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "ampeco-api": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@ampeco/public-api-mcp",
+        "--stdio",
+        "--hostname",
+        "${AMPECO_API_URL}"
+      ],
+      "env": {
+        "AMPECO_BEARER_TOKEN": "${AMPECO_API_TOKEN}"
+      }
+    }
+  }
+}
