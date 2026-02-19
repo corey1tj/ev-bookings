@@ -36,7 +36,7 @@ interface AdminBookingModalProps {
   booking?: {
     id: number;
     locationId: number;
-    evseId: number;
+    evseId: number | null;
     startAt: string;
     endAt: string;
     locationTimezone?: string;
