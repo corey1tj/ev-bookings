@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getLocations } from "@/lib/ampeco";
+import { getLocations, localized } from "@/lib/ampeco";
 
 export const dynamic = "force-dynamic";
 
@@ -30,9 +30,9 @@ export default async function SitesPage() {
             href={`/sites/${loc.id}`}
             className="block rounded-lg border bg-white p-4 shadow-sm transition hover:shadow-md"
           >
-            <h2 className="font-semibold">{loc.name}</h2>
+            <h2 className="font-semibold">{localized(loc.name)}</h2>
             <p className="mt-1 text-sm text-gray-500">
-              {loc.address}, {loc.city}, {loc.state}
+              {localized(loc.address)}, {loc.city}, {loc.state}
             </p>
           </Link>
         ))}

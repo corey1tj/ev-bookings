@@ -2,6 +2,7 @@ import {
   getLocation,
   getChargePoints,
   getChargePointEVSEs,
+  localized,
 } from "@/lib/ampeco";
 import BookingForm from "@/components/BookingForm";
 import { notFound } from "next/navigation";
@@ -63,9 +64,9 @@ export default async function SiteDetailPage({ params }: Props) {
         &larr; Back to sites
       </a>
       <div className="mb-2 text-sm text-gray-500">
-        {location.address}, {location.city}, {location.state}
+        {localized(location.address)}, {location.city}, {location.state}
       </div>
-      <BookingForm siteId={siteId} siteName={location.name} ports={ports} />
+      <BookingForm siteId={siteId} siteName={localized(location.name)} ports={ports} />
     </div>
   );
 }

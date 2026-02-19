@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getLocations, AmpecoError } from "@/lib/ampeco";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const res = await getLocations();

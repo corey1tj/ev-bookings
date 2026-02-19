@@ -5,8 +5,16 @@
  * Endpoint paths and types derived from Ampeco OpenAPI spec (v3.143.0).
  */
 
-const API_URL = process.env.AMPECO_API_URL!;
-const API_TOKEN = process.env.AMPECO_API_TOKEN!;
+function getEnv() {
+  const url = process.env.AMPECO_API_URL;
+  const token = process.env.AMPECO_API_TOKEN;
+  if (!url || !token) {
+    throw new Error(
+      "Missing required env vars: AMPECO_API_URL and/or AMPECO_API_TOKEN"
+    );
+  }
+  return { url, token };
+}
 
 // ─── Error class ─────────────────────────────────────────
 
@@ -25,12 +33,13 @@ class AmpecoError extends Error {
 // ─── Base request helper ─────────────────────────────────
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_URL}${path}`;
+  const { url: apiUrl, token } = getEnv();
+  const url = `${apiUrl}${path}`;
 
   const res = await fetch(url, {
     ...options,
     headers: {
-      Authorization: `Bearer ${API_TOKEN}`,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
       Accept: "application/json",
       ...options.headers,
@@ -47,17 +56,32 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 // ─── Types ───────────────────────────────────────────────
 
-// Locations (v1.1)
+// Localized text as returned by Ampeco v2.0 endpoints
+interface LocalizedText {
+  locale: string;
+  translation: string;
+}
+
+/** Extract a plain string from a localized text array (defaults to "en"). */
+export function localized(
+  texts: LocalizedText[] | undefined,
+  fallback = ""
+): string {
+  if (!texts || texts.length === 0) return fallback;
+  const en = texts.find((t) => t.locale === "en");
+  return en?.translation ?? texts[0].translation ?? fallback;
+}
+
+// Locations (v2.0)
 export interface AmpecoLocation {
   id: number;
-  name: string;
-  address: string;
+  name: LocalizedText[];
+  address: LocalizedText[];
   city: string;
   state: string;
   country: string;
-  postalCode: string;
-  latitude: number;
-  longitude: number;
+  postCode: string;
+  geoposition: { latitude: number; longitude: number };
   timezone: string;
   [key: string]: unknown;
 }
@@ -187,16 +211,16 @@ interface PaginatedResponse<T> {
   meta?: { cursor?: string; per_page?: number };
 }
 
-// ─── Locations (v1.1) ────────────────────────────────────
+// ─── Locations (v2.0) ────────────────────────────────────
 
 export async function getLocations(): Promise<PaginatedResponse<AmpecoLocation>> {
-  return request("/resources/locations/v1.1");
+  return request("/resources/locations/v2.0");
 }
 
 export async function getLocation(
   id: number
 ): Promise<{ data: AmpecoLocation }> {
-  return request(`/resources/locations/v1.1/${id}`);
+  return request(`/resources/locations/v2.0/${id}`);
 }
 
 // ─── Charge Points & EVSEs ───────────────────────────────
