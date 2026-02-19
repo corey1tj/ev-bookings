@@ -101,8 +101,21 @@ export interface AmpecoEVSE {
   status: string;
   connectorType: string;
   maxPowerKw: number;
+  currentType: string;
+  physicalReference?: string;
+  label?: string;
+  powerOptions?: {
+    maxPower: number;
+    maxVoltage?: string;
+    maxAmperage?: number | null;
+    phases?: string;
+  };
   bookingEnabled: boolean;
   [key: string]: unknown;
+}
+
+export interface BookableEVSE extends AmpecoEVSE {
+  chargePointName: string;
 }
 
 // Booking availability (v2.0)
@@ -346,16 +359,17 @@ export async function findUserByEmail(
  */
 export async function getBookableEVSEs(
   locationId: number
-): Promise<AmpecoEVSE[]> {
+): Promise<BookableEVSE[]> {
   const chargePointsRes = await getChargePoints(locationId);
   const evseResults = await Promise.all(
     chargePointsRes.data.map((cp) => getChargePointEVSEs(cp.id))
   );
-  const bookable: AmpecoEVSE[] = [];
-  for (const evseRes of evseResults) {
-    for (const evse of evseRes.data) {
+  const bookable: BookableEVSE[] = [];
+  for (let i = 0; i < evseResults.length; i++) {
+    const cp = chargePointsRes.data[i];
+    for (const evse of evseResults[i].data) {
       if (evse.bookingEnabled) {
-        bookable.push(evse);
+        bookable.push({ ...evse, chargePointName: cp.name ?? "" });
       }
     }
   }

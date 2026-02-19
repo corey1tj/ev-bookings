@@ -30,6 +30,10 @@ export default async function SiteDetailPage({ params }: Props) {
     networkId: string;
     connectorType: string;
     maxPowerKw: number;
+    chargePointName: string;
+    label?: string;
+    physicalReference?: string;
+    currentType?: string;
   }[] = [];
 
   try {
@@ -38,7 +42,13 @@ export default async function SiteDetailPage({ params }: Props) {
       evseId: evse.id,
       networkId: evse.networkId,
       connectorType: evse.connectorType,
-      maxPowerKw: evse.maxPowerKw,
+      maxPowerKw: evse.powerOptions?.maxPower
+        ? evse.powerOptions.maxPower / 1000
+        : evse.maxPowerKw,
+      chargePointName: evse.chargePointName,
+      label: evse.label,
+      physicalReference: evse.physicalReference,
+      currentType: evse.currentType,
     }));
   } catch {
     // If charge point fetch fails, proceed with empty ports —

@@ -8,6 +8,10 @@ interface Port {
   networkId: string;
   connectorType: string;
   maxPowerKw: number;
+  chargePointName: string;
+  label?: string;
+  physicalReference?: string;
+  currentType?: string;
 }
 
 interface BookingFormProps {
@@ -157,10 +161,19 @@ export default function BookingForm({ siteId, siteName, ports, siteTimezone }: B
                     : "hover:border-gray-400"
                 }`}
               >
-                <div className="font-medium">{port.connectorType}</div>
-                <div className="text-gray-500">
-                  {port.maxPowerKw} kW &middot; {port.networkId}
+                <div className="font-medium">{port.chargePointName}</div>
+                {port.label && (
+                  <div className="text-gray-600">{port.label}</div>
+                )}
+                <div className="mt-1 text-gray-500">
+                  {port.currentType?.toUpperCase() ?? port.connectorType} &middot;{" "}
+                  {port.maxPowerKw} kW
                 </div>
+                {port.physicalReference && (
+                  <div className="mt-1 text-xs text-gray-400">
+                    ID: {port.physicalReference}
+                  </div>
+                )}
               </button>
             ))}
           </div>
