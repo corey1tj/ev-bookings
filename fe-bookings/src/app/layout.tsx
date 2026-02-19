@@ -23,6 +23,9 @@ export default function RootLayout({
               <a href="/sites" className="hover:underline">
                 Book a Charger
               </a>
+              <a href="/my-bookings" className="hover:underline">
+                My Bookings
+              </a>
             </nav>
           </div>
         </header>
