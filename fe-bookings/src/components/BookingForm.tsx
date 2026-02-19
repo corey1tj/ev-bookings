@@ -35,6 +35,52 @@ const COMMON_TIMEZONES = [
   { value: "UTC", label: "UTC" },
 ];
 
+const DURATION_OPTIONS = [
+  { value: "30", label: "30 min" },
+  { value: "60", label: "1 hr" },
+  { value: "90", label: "1.5 hr" },
+  { value: "120", label: "2 hr" },
+  { value: "180", label: "3 hr" },
+  { value: "240", label: "4 hr" },
+  { value: "300", label: "5 hr" },
+  { value: "360", label: "6 hr" },
+  { value: "480", label: "8 hr" },
+  { value: "600", label: "10 hr" },
+  { value: "720", label: "12 hr" },
+];
+
+function formatPreview(
+  dateStr: string,
+  timeStr: string,
+  durationMin: number,
+  timezone: string,
+): string {
+  const start = new Date(`${dateStr}T${timeStr}:00`);
+  const end = new Date(start.getTime() + durationMin * 60_000);
+
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const endFmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  // If start and end are on the same day, show compact format
+  const startDay = new Intl.DateTimeFormat("en-US", { timeZone: timezone, day: "numeric", month: "short" }).format(start);
+  const endDay = new Intl.DateTimeFormat("en-US", { timeZone: timezone, day: "numeric", month: "short" }).format(end);
+
+  if (startDay === endDay) {
+    return `${fmt.format(start)} – ${endFmt.format(end)}`;
+  }
+  return `${fmt.format(start)} – ${fmt.format(end)}`;
+}
+
 /**
  * Convert a local date + time in a named timezone to a UTC Date object.
  * Uses the Intl API to determine the correct UTC offset (DST-aware).
@@ -181,48 +227,63 @@ export default function BookingForm({ siteId, siteName, ports, siteTimezone }: B
       </fieldset>
 
       {/* Date & Time */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <fieldset className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+        <legend className="px-2 text-sm font-semibold text-gray-700">
+          Date &amp; Time
+        </legend>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-gray-700">Date</span>
+            <input
+              type="date"
+              required
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              min={new Date().toISOString().split("T")[0]}
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-gray-700">Start time</span>
+            <input
+              type="time"
+              required
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            />
+          </label>
+        </div>
+
+        {/* Duration chips */}
+        <div>
+          <span className="mb-2 block text-sm font-medium text-gray-700">Duration</span>
+          <div className="flex flex-wrap gap-2">
+            {DURATION_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setDuration(opt.value)}
+                className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${
+                  duration === opt.value
+                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                    : "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-100"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Timezone */}
         <label className="block">
-          <span className="mb-1 block text-sm font-medium">Date</span>
-          <input
-            type="date"
-            required
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            min={new Date().toISOString().split("T")[0]}
-            className="w-full rounded border px-3 py-2"
-          />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-sm font-medium">Start time</span>
-          <input
-            type="time"
-            required
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-            className="w-full rounded border px-3 py-2"
-          />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-sm font-medium">Duration</span>
-          <select
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-            className="w-full rounded border px-3 py-2"
-          >
-            <option value="30">30 min</option>
-            <option value="60">1 hour</option>
-            <option value="120">2 hours</option>
-            <option value="180">3 hours</option>
-            <option value="240">4 hours</option>
-          </select>
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-sm font-medium">Time zone</span>
+          <span className="mb-1 block text-sm font-medium text-gray-700">Time zone</span>
           <select
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
-            className="w-full rounded border px-3 py-2"
+            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           >
             {timezoneOptions.map((tz) => (
               <option key={tz.value} value={tz.value}>
@@ -231,7 +292,15 @@ export default function BookingForm({ siteId, siteName, ports, siteTimezone }: B
             ))}
           </select>
         </label>
-      </div>
+
+        {/* End time preview */}
+        {date && startTime && (
+          <div className="rounded-md bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            <span className="font-medium">Booking window:</span>{" "}
+            {formatPreview(date, startTime, parseInt(duration), timezone)}
+          </div>
+        )}
+      </fieldset>
 
       {/* Driver email (must match driver app account) */}
       <label className="block">
