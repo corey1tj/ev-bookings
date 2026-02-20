@@ -23,6 +23,9 @@ export default function RootLayout({
               <a href="/sites" className="hover:underline">
                 Locations
               </a>
+              <a href="/my-bookings" className="hover:underline">
+                My Bookings
+              </a>
               <a href="/admin" className="hover:underline">
                 Admin
               </a>

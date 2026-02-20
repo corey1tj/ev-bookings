@@ -4,7 +4,7 @@
 
 Public booking UI and admin console for Future Energy's EV charging network. A thin Next.js layer on top of [Ampeco's Bookings API](https://ampeco.com/) — Ampeco is the sole source of truth (no local database).
 
-Drivers browse charging locations, pick a time slot and charger, then confirm a booking. An admin console lets staff view and cancel bookings.
+Drivers browse charging locations, pick a time slot and charger, then confirm a booking. Drivers can also view, reschedule, and cancel their own bookings via email lookup. An admin console lets staff view and cancel bookings.
 
 ## Repository Structure
 
@@ -30,6 +30,8 @@ ev-bookings/
         │   ├── bookings/
         │   │   └── [id]/
         │   │       └── page.tsx    # Booking confirmation
+        │   ├── my-bookings/
+        │   │   └── page.tsx        # Driver booking management (client component)
         │   ├── admin/
         │   │   └── page.tsx        # Admin console (client component)
         │   └── api/                # Server-side API proxy routes
@@ -41,15 +43,24 @@ ev-bookings/
         │       │   ├── route.ts              # GET, POST /api/bookings
         │       │   └── [id]/
         │       │       └── route.ts          # GET /api/bookings/:id
+        │       ├── my-bookings/
+        │       │   ├── route.ts              # GET /api/my-bookings?email=
+        │       │   └── [id]/
+        │       │       ├── update/
+        │       │       │   └── route.ts      # POST /api/my-bookings/:id/update
+        │       │       └── cancel/
+        │       │           └── route.ts      # POST /api/my-bookings/:id/cancel
         │       └── admin/bookings/
         │           ├── route.ts              # GET /api/admin/bookings (auth)
         │           └── [id]/cancel/
         │               └── route.ts          # POST /api/admin/bookings/:id/cancel
         ├── components/
-        │   └── BookingForm.tsx     # Client-side booking form
+        │   ├── BookingForm.tsx     # Client-side booking form
+        │   └── DriverEditBookingModal.tsx  # Driver booking edit modal
         └── lib/
             ├── ampeco.ts           # Ampeco API client, types, all API methods
-            └── admin-auth.ts       # Simple Bearer-token admin auth helper
+            ├── admin-auth.ts       # Simple Bearer-token admin auth helper
+            └── enrich-bookings.ts  # Shared booking enrichment helper
 ```
 
 ## Tech Stack
@@ -99,7 +110,7 @@ All Ampeco calls go through Next.js API routes (`/api/*`) so the `AMPECO_API_TOK
 ### Rendering Strategy
 
 - **Server components** (default): Sites list, site detail, booking confirmation — data is fetched at request time (`export const dynamic = "force-dynamic"`).
-- **Client components** (`"use client"`): `BookingForm.tsx` and `admin/page.tsx` — these need interactivity (form state, auth flow).
+- **Client components** (`"use client"`): `BookingForm.tsx`, `admin/page.tsx`, and `my-bookings/page.tsx` — these need interactivity (form state, auth flow).
 
 ### Ampeco API Client (`src/lib/ampeco.ts`)
 
@@ -124,6 +135,21 @@ Driver enters email + picks charger/time
     → createBookingRequest({ type: "create", ... })
   → Redirect to /bookings/:bookingRequestId (confirmation page)
 ```
+
+### Driver Self-Service Flow
+
+```
+Driver enters email on /my-bookings
+  → GET /api/my-bookings?email=<email>
+    → findUserByEmail(email) — 404 "no_account" if not found
+    → getBookings({ filter[userId]: userId })
+    → enrichBookings() — resolves location names + EVSE details
+  → Shows booking cards (upcoming / past)
+  → Edit: opens DriverEditBookingModal → POST /api/my-bookings/:id/update
+  → Cancel: confirm dialog → POST /api/my-bookings/:id/cancel
+```
+
+All driver API routes verify email→userId ownership before allowing modifications. Email is persisted in localStorage for convenience.
 
 ### Admin Auth
 
