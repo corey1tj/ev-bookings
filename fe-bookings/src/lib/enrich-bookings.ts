@@ -12,28 +12,7 @@ import {
   localized,
   type AmpecoBooking,
 } from "@/lib/ampeco";
-
-export interface EnrichedLocation {
-  name: string;
-  city: string;
-  state: string;
-  timezone: string;
-}
-
-export interface EnrichedEvse {
-  chargePointName: string;
-  label?: string;
-  physicalReference?: string;
-  connectorType: string;
-  maxPowerKw: number;
-  currentType: string;
-}
-
-export type EnrichedBooking = Omit<AmpecoBooking, "evseId"> & {
-  evseId: number | null;
-  location: EnrichedLocation | null;
-  evse: EnrichedEvse | null;
-};
+import type { BookingLocation, BookingEvse, EnrichedBooking } from "@/lib/types";
 
 export async function enrichBookings(
   bookings: AmpecoBooking[]
@@ -58,8 +37,8 @@ export async function enrichBookings(
   const locationIds = [...new Set(bookings.map((b) => b.locationId))];
 
   // Fetch location details and EVSEs for each unique location in parallel
-  const locationDataMap = new Map<number, EnrichedLocation>();
-  const evseDataMap = new Map<number, EnrichedEvse>();
+  const locationDataMap = new Map<number, BookingLocation>();
+  const evseDataMap = new Map<number, BookingEvse>();
 
   await Promise.all(
     locationIds.map(async (locId) => {

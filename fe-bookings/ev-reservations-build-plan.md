@@ -160,7 +160,7 @@ Both booking requests and bookings support cursor-based pagination and these que
 │  (proxy to     │  │  (authenticated)   │
 │   Ampeco,      │  │                    │
 │   keeps token  │  │ • View bookings    │
-│   server-side) │  │ • Cancel / modify  │
+│   server-side) │  │ • Cancel / update  │
 └───────┬────────┘  └───────┬────────────┘
         │                   │
         ▼                   ▼
@@ -217,7 +217,7 @@ GET  /api/admin/bookings?filter[locationId]=&filter[status]=&filter[startAfter]=
 POST /api/admin/bookings/{id}/cancel
   → POST /resources/booking-requests/v1.0 with type: "cancel", bookingId: {id}
 
-POST /api/admin/bookings/{id}/modify
+POST /api/admin/bookings/{id}/update
   → POST /resources/booking-requests/v1.0 with type: "update", bookingId: {id}
 ```
 
@@ -320,7 +320,7 @@ Single admin role. No policy config, no reporting.
 ### Sprint 2: Admin Console + Pilot (Weeks 5–6)
 - Admin auth (simple, single-role)
 - Bookings list with Ampeco filters (location, status, date range) + cursor pagination
-- Booking detail + cancel (type: "cancel") + modify (type: "update")
+- Booking detail + cancel (type: "cancel") + update (type: "update")
 - Calendar view
 - End-to-end testing across hardware vendors
 - Verify Ampeco booking enforcement on EVSE access

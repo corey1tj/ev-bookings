@@ -25,6 +25,7 @@ ev-bookings/
         │   ├── globals.css         # Tailwind directives only
         │   ├── sites/
         │   │   ├── page.tsx        # Location list (server component)
+        │   │   ├── loading.tsx     # Loading skeleton for sites list
         │   │   └── [siteId]/
         │   │       └── page.tsx    # Site detail + booking form
         │   ├── bookings/
@@ -178,7 +179,7 @@ TypeScript path alias `@/*` maps to `./src/*` (configured in `tsconfig.json`).
 
 ## Key Types (from `src/lib/ampeco.ts`)
 
-- `AmpecoLocation` — id, name, address, city, state, country, postalCode, timezone, coordinates
+- `AmpecoLocation` — id, name, address, city, state, country, postCode, timezone, geoposition (latitude/longitude)
 - `AmpecoEVSE` — id, networkId, status, connectorType, maxPowerKw, bookingEnabled
 - `AmpecoBookingRequest` — id, type, status (`pending` | `approved` | `rejected`), timestamps
 - `AmpecoBooking` — id, status (`accepted` | `reserved` | `completed` | `cancelled` | `no-show` | `failed`), userId, locationId, evseId, startAt, endAt

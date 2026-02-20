@@ -10,7 +10,7 @@ Next.js (App Router)
   ├── /sites/:id      → Pick time + charger → confirm booking
   ├── /bookings/:id   → Booking confirmation
   ├── /my-bookings    → Driver self-service (view, edit, cancel bookings)
-  ├── /admin          → Admin console (list, cancel, modify)
+  ├── /admin          → Admin console (list, cancel, update)
   └── /api/*          → Proxy routes to Ampeco (keeps token server-side)
 ```
 
@@ -56,8 +56,12 @@ src/
         update/           → POST /api/my-bookings/:id/update
         cancel/           → POST /api/my-bookings/:id/cancel
       admin/bookings/     → GET /api/admin/bookings (auth required)
+      admin/bookings/create/ → POST /api/admin/bookings/create
       admin/bookings/[id]/
         cancel/           → POST /api/admin/bookings/:id/cancel
+        update/           → POST /api/admin/bookings/:id/update
+      admin/locations/    → GET /api/admin/locations
+      admin/locations/[locationId]/evses/ → GET /api/admin/locations/:id/evses
     sites/                → Public site list page
     sites/[siteId]/       → Site detail + booking form
     bookings/[id]/        → Booking confirmation page
@@ -66,10 +70,16 @@ src/
   lib/
     ampeco.ts             → Typed Ampeco API client
     admin-auth.ts         → Simple admin auth helper
+    api-helpers.ts        → Shared API route error handler
+    availability.ts       → Booking slot availability validation
+    date-utils.ts         → Timezone, duration, and date/time helpers
     enrich-bookings.ts    → Shared booking enrichment (location/EVSE details)
+    types.ts              → Shared TypeScript types (EnrichedBooking)
   components/
     BookingForm.tsx        → Client-side booking form
+    BookingCard.tsx        → Shared booking card (driver view)
     DriverEditBookingModal.tsx → Driver booking edit modal
+    AdminBookingModal.tsx  → Admin create/edit booking modal
 ```
 
 ## API Call Patterns
