@@ -2,45 +2,19 @@
 
 import { useState, useEffect, useCallback } from "react";
 import DriverEditBookingModal from "@/components/DriverEditBookingModal";
-
-interface BookingLocation {
-  name: string;
-  city: string;
-  state: string;
-  timezone: string;
-}
-
-interface BookingEvse {
-  chargePointName: string;
-  label?: string;
-  physicalReference?: string;
-  connectorType: string;
-  maxPowerKw: number;
-  currentType: string;
-}
-
-interface Booking {
-  id: number;
-  locationId: number;
-  evseId: number | null;
-  userId: number;
-  startAt: string;
-  endAt: string;
-  status: string;
-  location: BookingLocation | null;
-  evse: BookingEvse | null;
-}
+import BookingCard from "@/components/BookingCard";
+import { EnrichedBooking } from "@/lib/types";
 
 const STORAGE_KEY = "my-bookings-email";
 
 export default function MyBookingsPage() {
   const [email, setEmail] = useState("");
   const [lookupDone, setLookupDone] = useState(false);
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState<EnrichedBooking[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [noAccount, setNoAccount] = useState(false);
-  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [editingBooking, setEditingBooking] = useState<EnrichedBooking | null>(null);
 
   // Load saved email from localStorage on mount
   useEffect(() => {
@@ -69,7 +43,7 @@ export default function MyBookingsPage() {
 
         if (!res.ok) throw new Error("Failed to load bookings");
 
-        const data: Booking[] = await res.json();
+        const data: EnrichedBooking[] = await res.json();
         setBookings(data);
         setLookupDone(true);
         localStorage.setItem(STORAGE_KEY, lookupEmail);
@@ -270,90 +244,6 @@ export default function MyBookingsPage() {
             fetchBookings(email);
           }}
         />
-      )}
-    </div>
-  );
-}
-
-function BookingCard({
-  booking,
-  onEdit,
-  onCancel,
-}: {
-  booking: Booking;
-  onEdit?: () => void;
-  onCancel?: () => void;
-}) {
-  const isActive =
-    booking.status === "accepted" || booking.status === "reserved";
-
-  return (
-    <div className="rounded-lg border bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-start justify-between">
-        <div>
-          {booking.location ? (
-            <>
-              <div className="font-medium">{booking.location.name}</div>
-              <div className="text-sm text-gray-500">
-                {booking.location.city}, {booking.location.state}
-              </div>
-            </>
-          ) : (
-            <div className="text-sm text-gray-500">
-              Location #{booking.locationId}
-            </div>
-          )}
-        </div>
-        <span
-          className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-            isActive
-              ? "bg-green-100 text-green-800"
-              : booking.status === "cancelled"
-                ? "bg-red-100 text-red-800"
-                : booking.status === "completed"
-                  ? "bg-blue-100 text-blue-800"
-                  : "bg-gray-100 text-gray-800"
-          }`}
-        >
-          {booking.status}
-        </span>
-      </div>
-
-      {booking.evse && (
-        <div className="mb-2 text-sm text-gray-600">
-          {booking.evse.chargePointName}
-          {booking.evse.label && ` — ${booking.evse.label}`}
-          <span className="ml-1 text-gray-400">
-            ({booking.evse.currentType?.toUpperCase()} &middot;{" "}
-            {booking.evse.maxPowerKw} kW)
-          </span>
-        </div>
-      )}
-
-      <div className="mb-1 text-sm">
-        <span className="font-medium">Start:</span>{" "}
-        {new Date(booking.startAt).toLocaleString()}
-      </div>
-      <div className="text-sm">
-        <span className="font-medium">End:</span>{" "}
-        {new Date(booking.endAt).toLocaleString()}
-      </div>
-
-      {isActive && onEdit && onCancel && (
-        <div className="mt-3 flex gap-3 border-t pt-3">
-          <button
-            onClick={onEdit}
-            className="text-sm text-blue-600 hover:underline"
-          >
-            Edit
-          </button>
-          <button
-            onClick={onCancel}
-            className="text-sm text-red-600 hover:underline"
-          >
-            Cancel
-          </button>
-        </div>
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBookableEVSEs, AmpecoError } from "@/lib/ampeco";
+import { getBookableEVSEs } from "@/lib/ampeco";
+import { handleApiError } from "@/lib/api-helpers";
 import { requireAdmin } from "@/lib/admin-auth";
 
 interface RouteParams {
@@ -31,9 +32,6 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     }));
     return NextResponse.json(data);
   } catch (err) {
-    if (err instanceof AmpecoError) {
-      return NextResponse.json({ error: "Failed to load EVSEs" }, { status: err.status });
-    }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(err, "Failed to load EVSEs");
   }
 }

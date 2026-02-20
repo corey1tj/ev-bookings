@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import {
-  COMMON_TIMEZONES,
   DURATION_OPTIONS,
   formatPreview,
   toUTCDate,
+  parseBookingDateTime,
+  computeDuration,
+  buildTimezoneOptions,
 } from "@/lib/date-utils";
 
 interface AdminLocation {
@@ -41,32 +43,6 @@ interface AdminBookingModalProps {
     endAt: string;
     locationTimezone?: string;
   };
-}
-
-function parseBookingDateTime(isoString: string, timezone: string) {
-  const d = new Date(isoString);
-  const fmt = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  const timeFmt = new Intl.DateTimeFormat("en-GB", {
-    timeZone: timezone,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-  return {
-    date: fmt.format(d), // YYYY-MM-DD
-    time: timeFmt.format(d), // HH:MM
-  };
-}
-
-function computeDuration(startAt: string, endAt: string): string {
-  const diff = (new Date(endAt).getTime() - new Date(startAt).getTime()) / 60_000;
-  const match = DURATION_OPTIONS.find((opt) => opt.value === String(diff));
-  return match ? match.value : "60";
 }
 
 export default function AdminBookingModal({
@@ -156,7 +132,6 @@ export default function AdminBookingModal({
     if (loc) setTimezone(loc.timezone);
   }, [mode, selectedLocationId, authToken, locations]);
 
-  // Build timezone options
   const timezoneOptions = (() => {
     let siteTz: string | undefined;
     if (mode === "create" && selectedLocationId) {
@@ -165,13 +140,7 @@ export default function AdminBookingModal({
     } else if (mode === "edit" && booking?.locationTimezone) {
       siteTz = booking.locationTimezone;
     }
-    if (siteTz && !COMMON_TIMEZONES.some((tz) => tz.value === siteTz)) {
-      return [
-        { value: siteTz, label: `Site (${siteTz})` },
-        ...COMMON_TIMEZONES,
-      ];
-    }
-    return COMMON_TIMEZONES;
+    return buildTimezoneOptions(siteTz);
   })();
 
   async function handleSubmit(e: React.FormEvent) {

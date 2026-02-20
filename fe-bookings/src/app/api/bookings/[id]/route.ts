@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBooking, AmpecoError } from "@/lib/ampeco";
+import { handleApiError } from "@/lib/api-helpers";
 
 interface RouteParams {
   params: { id: string };
@@ -15,12 +16,9 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     const res = await getBooking(id);
     return NextResponse.json(res.data);
   } catch (err) {
-    if (err instanceof AmpecoError) {
-      if (err.status === 404) {
-        return NextResponse.json({ error: "Booking not found" }, { status: 404 });
-      }
-      return NextResponse.json({ error: "Failed to load booking" }, { status: err.status });
+    if (err instanceof AmpecoError && err.status === 404) {
+      return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(err, "Failed to load booking");
   }
 }

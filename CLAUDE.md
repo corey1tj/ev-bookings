@@ -4,7 +4,7 @@
 
 Public booking UI and admin console for Future Energy's EV charging network. A thin Next.js layer on top of [Ampeco's Bookings API](https://ampeco.com/) — Ampeco is the sole source of truth (no local database).
 
-Drivers browse charging locations, pick a time slot and charger, then confirm a booking. Drivers can also view, reschedule, and cancel their own bookings via email lookup. An admin console lets staff view and cancel bookings.
+Drivers browse charging locations, pick a time slot and charger, then confirm a booking. Drivers can also view, reschedule, and cancel their own bookings via email lookup. An admin console lets staff view, create, edit, and cancel bookings.
 
 ## Repository Structure
 
@@ -50,17 +50,33 @@ ev-bookings/
         │       │       │   └── route.ts      # POST /api/my-bookings/:id/update
         │       │       └── cancel/
         │       │           └── route.ts      # POST /api/my-bookings/:id/cancel
-        │       └── admin/bookings/
-        │           ├── route.ts              # GET /api/admin/bookings (auth)
-        │           └── [id]/cancel/
-        │               └── route.ts          # POST /api/admin/bookings/:id/cancel
+        │       └── admin/
+        │           ├── bookings/
+        │           │   ├── route.ts              # GET /api/admin/bookings (auth)
+        │           │   ├── create/
+        │           │   │   └── route.ts          # POST /api/admin/bookings/create
+        │           │   └── [id]/
+        │           │       ├── cancel/
+        │           │       │   └── route.ts      # POST /api/admin/bookings/:id/cancel
+        │           │       └── update/
+        │           │           └── route.ts      # POST /api/admin/bookings/:id/update
+        │           └── locations/
+        │               ├── route.ts              # GET /api/admin/locations
+        │               └── [locationId]/evses/
+        │                   └── route.ts          # GET /api/admin/locations/:id/evses
         ├── components/
-        │   ├── BookingForm.tsx     # Client-side booking form
-        │   └── DriverEditBookingModal.tsx  # Driver booking edit modal
+        │   ├── BookingForm.tsx              # Client-side booking form
+        │   ├── BookingCard.tsx              # Shared booking card (driver view)
+        │   ├── DriverEditBookingModal.tsx   # Driver booking edit modal
+        │   └── AdminBookingModal.tsx        # Admin create/edit booking modal
         └── lib/
             ├── ampeco.ts           # Ampeco API client, types, all API methods
             ├── admin-auth.ts       # Simple Bearer-token admin auth helper
-            └── enrich-bookings.ts  # Shared booking enrichment helper
+            ├── api-helpers.ts      # Shared API route error handler
+            ├── availability.ts     # Booking slot availability validation
+            ├── date-utils.ts       # Timezone, duration, and date/time helpers
+            ├── enrich-bookings.ts  # Booking enrichment (location/EVSE names)
+            └── types.ts            # Shared TypeScript types (EnrichedBooking)
 ```
 
 ## Tech Stack
@@ -114,10 +130,11 @@ All Ampeco calls go through Next.js API routes (`/api/*`) so the `AMPECO_API_TOK
 
 ### Ampeco API Client (`src/lib/ampeco.ts`)
 
-Central module (~286 lines) containing all types and API methods:
+Central module (~400 lines) containing all types and API methods:
 
-- **Locations:** `getLocations()`, `getLocation(id)`
-- **EVSEs:** `getChargePointEVSEs(chargePointId)`
+- **Locations:** `getLocations()`, `getLocation(id)`, `getLocationsWithBookableEVSEs()`
+- **Charge Points:** `getChargePoints(locationId)`
+- **EVSEs:** `getChargePointEVSEs(chargePointId)`, `getBookableEVSEs(locationId)`
 - **Availability:** `checkBookingAvailability(locationId, params)`
 - **Booking Requests:** `createBookingRequest(body)`, `getBookingRequests()`, `getBookingRequest(id)` — uses a polymorphic `type` discriminator (`"create"` | `"update"` | `"cancel"`)
 - **Bookings:** `getBookings()`, `getBooking(id)`
@@ -169,12 +186,8 @@ TypeScript path alias `@/*` maps to `./src/*` (configured in `tsconfig.json`).
 
 ## Known TODOs / Incomplete Work
 
-These are documented in `fe-bookings/README.md` under Sprint 0:
-
-1. **Charge Point → EVSE fetch chain**: The site detail page (`sites/[siteId]/page.tsx`) currently passes an empty `ports` array to `BookingForm`. Needs to fetch charge points for the location, then fetch EVSEs per charge point, filtering by `bookingEnabled: true`.
-2. **Availability parsing**: `POST /api/bookings` calls `checkBookingAvailability` but does not yet parse the response to confirm the requested slot is actually open.
-3. **Admin auth upgrade**: Current MVP uses a shared password; Phase 2 should use proper OAuth or Supabase Auth.
-4. **Tests**: No test files exist.
+1. **Admin auth upgrade**: Current MVP uses a shared password; Phase 2 should use proper OAuth or Supabase Auth.
+2. **Tests**: No test files exist.
 
 ## Conventions & Guidelines
 
@@ -192,8 +205,9 @@ These are documented in `fe-bookings/README.md` under Sprint 0:
 - API proxy routes go in `src/app/api/`.
 
 ### Error Handling
-- API routes return structured JSON errors with appropriate HTTP status codes.
+- API routes use `handleApiError()` from `src/lib/api-helpers.ts` for consistent error responses.
 - The Ampeco client throws `AmpecoError` with status and body for non-2xx responses.
+- Availability validation uses `validateSlotAvailable()` from `src/lib/availability.ts`.
 - Client components display user-friendly error messages and handle the `"no_account"` error case specifically.
 
 ### Naming

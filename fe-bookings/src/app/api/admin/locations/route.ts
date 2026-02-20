@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLocationsWithBookableEVSEs, localized, AmpecoError } from "@/lib/ampeco";
+import { getLocationsWithBookableEVSEs, localized } from "@/lib/ampeco";
+import { handleApiError } from "@/lib/api-helpers";
 import { requireAdmin } from "@/lib/admin-auth";
 
 export async function GET(req: NextRequest) {
@@ -18,9 +19,6 @@ export async function GET(req: NextRequest) {
     }));
     return NextResponse.json(data);
   } catch (err) {
-    if (err instanceof AmpecoError) {
-      return NextResponse.json({ error: "Failed to load locations" }, { status: err.status });
-    }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(err, "Failed to load locations");
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkBookingAvailability, AmpecoError } from "@/lib/ampeco";
+import { checkBookingAvailability } from "@/lib/ampeco";
+import { handleApiError } from "@/lib/api-helpers";
 
 interface RouteParams {
   params: { siteId: string };
@@ -29,15 +30,6 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     });
     return NextResponse.json(availability);
   } catch (err) {
-    if (err instanceof AmpecoError) {
-      return NextResponse.json(
-        { error: "Availability check failed" },
-        { status: err.status }
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(err, "Availability check failed");
   }
 }

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(python3:*)",
+      "Bash(git -C /Users/traviscorey/ev-bookings log --format=\"%H %s\" -5)",
+      "Bash(xargs -I {} bash -c 'echo \"\"{}\"\"; git -C /Users/traviscorey/ev-bookings show --stat {} | head -20')",
+      "Bash(git -C /Users/traviscorey/ev-bookings show:*)",
+      "WebFetch(domain:ev-bookings.vercel.app)",
+      "mcp__claude_ai_Vercel__get_runtime_logs",
+      "mcp__claude_ai_Vercel__get_deployment_build_logs",
+      "Bash(curl:*)",
+      "Bash(printf:*)",
+      "Bash(node:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(source:*)",
+      "Bash(pgrep:*)",
+      "Bash(pkill:*)",
+      "Bash(wc:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)"
+    ]
+  }
+}

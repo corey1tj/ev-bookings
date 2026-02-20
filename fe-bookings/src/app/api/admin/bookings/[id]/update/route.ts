@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createBookingRequest, AmpecoError } from "@/lib/ampeco";
+import { createBookingRequest } from "@/lib/ampeco";
+import { handleApiError } from "@/lib/api-helpers";
 import { requireAdmin } from "@/lib/admin-auth";
 
 interface RouteParams {
@@ -43,12 +44,6 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       status: res.data.status,
     });
   } catch (err) {
-    if (err instanceof AmpecoError) {
-      return NextResponse.json(
-        { error: "Update failed", details: err.body },
-        { status: err.status }
-      );
-    }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(err, "Update failed");
   }
 }

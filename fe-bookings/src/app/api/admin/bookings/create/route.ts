@@ -3,9 +3,9 @@ import {
   findUserByEmail,
   checkBookingAvailability,
   createBookingRequest,
-  AmpecoError,
-  EvseAvailability,
 } from "@/lib/ampeco";
+import { handleApiError } from "@/lib/api-helpers";
+import { validateSlotAvailable } from "@/lib/availability";
 import { requireAdmin } from "@/lib/admin-auth";
 
 export async function POST(req: NextRequest) {
@@ -45,38 +45,12 @@ export async function POST(req: NextRequest) {
     });
 
     if (availability.data && Array.isArray(availability.data)) {
-      const requestedStart = new Date(startAt).getTime();
-      const requestedEnd = new Date(endAt).getTime();
-
-      function evseHasSlot(evse: EvseAvailability): boolean {
-        if (!evse.availableSlots || !Array.isArray(evse.availableSlots)) {
-          return false;
-        }
-        return evse.availableSlots.some((slot) => {
-          const slotStart = new Date(slot.startAt).getTime();
-          const slotEnd = new Date(slot.endAt).getTime();
-          return slotStart <= requestedStart && slotEnd >= requestedEnd;
-        });
-      }
-
-      if (evseId) {
-        const evseData = availability.data.find(
-          (e: EvseAvailability) => e.evseId === evseId
+      const result = validateSlotAvailable(availability.data, startAt, endAt, evseId);
+      if (!result.available) {
+        return NextResponse.json(
+          { error: "Slot unavailable", message: result.message },
+          { status: 409 }
         );
-        if (!evseData || !evseHasSlot(evseData)) {
-          return NextResponse.json(
-            { error: "Slot unavailable", message: "The selected charger is not available for the requested time." },
-            { status: 409 }
-          );
-        }
-      } else {
-        const anyAvailable = availability.data.some(evseHasSlot);
-        if (!anyAvailable) {
-          return NextResponse.json(
-            { error: "Slot unavailable", message: "No chargers are available for the requested time." },
-            { status: 409 }
-          );
-        }
       }
     }
 
@@ -95,12 +69,6 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (err) {
-    if (err instanceof AmpecoError) {
-      return NextResponse.json(
-        { error: "Booking failed", details: err.body },
-        { status: err.status }
-      );
-    }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(err, "Booking failed");
   }
 }

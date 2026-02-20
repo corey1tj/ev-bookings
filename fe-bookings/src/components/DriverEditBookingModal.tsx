@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import {
-  COMMON_TIMEZONES,
   DURATION_OPTIONS,
   formatPreview,
   toUTCDate,
+  parseBookingDateTime,
+  computeDuration,
+  buildTimezoneOptions,
 } from "@/lib/date-utils";
 
 interface DriverEditBookingModalProps {
@@ -18,33 +20,6 @@ interface DriverEditBookingModalProps {
   email: string;
   onClose: () => void;
   onSuccess: () => void;
-}
-
-function parseBookingDateTime(isoString: string, timezone: string) {
-  const d = new Date(isoString);
-  const fmt = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  const timeFmt = new Intl.DateTimeFormat("en-GB", {
-    timeZone: timezone,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-  return {
-    date: fmt.format(d),
-    time: timeFmt.format(d),
-  };
-}
-
-function computeDuration(startAt: string, endAt: string): string {
-  const diff =
-    (new Date(endAt).getTime() - new Date(startAt).getTime()) / 60_000;
-  const match = DURATION_OPTIONS.find((opt) => opt.value === String(diff));
-  return match ? match.value : "60";
 }
 
 export default function DriverEditBookingModal({
@@ -70,17 +45,7 @@ export default function DriverEditBookingModal({
     setDuration(computeDuration(booking.startAt, booking.endAt));
   }, [booking]);
 
-  // Build timezone options
-  const timezoneOptions = (() => {
-    const siteTz = booking.locationTimezone;
-    if (siteTz && !COMMON_TIMEZONES.some((tz) => tz.value === siteTz)) {
-      return [
-        { value: siteTz, label: `Site (${siteTz})` },
-        ...COMMON_TIMEZONES,
-      ];
-    }
-    return COMMON_TIMEZONES;
-  })();
+  const timezoneOptions = buildTimezoneOptions(booking.locationTimezone);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

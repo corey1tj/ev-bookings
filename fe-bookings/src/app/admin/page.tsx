@@ -1,45 +1,22 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import AdminBookingModal from "@/components/AdminBookingModal";
-
-interface BookingLocation {
-  name: string;
-  city: string;
-  state: string;
-  timezone: string;
-}
-
-interface BookingEvse {
-  chargePointName: string;
-  label?: string;
-  physicalReference?: string;
-  connectorType: string;
-  maxPowerKw: number;
-  currentType: string;
-}
-
-interface Booking {
-  id: number;
-  locationId: number;
-  evseId: number | null;
-  userId: number;
-  startAt: string;
-  endAt: string;
-  status: string;
-  location: BookingLocation | null;
-  evse: BookingEvse | null;
-  [key: string]: unknown;
-}
+import { EnrichedBooking } from "@/lib/types";
 
 export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState<EnrichedBooking[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [editingBooking, setEditingBooking] = useState<EnrichedBooking | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const fetchBookings = useCallback(async () => {
     setLoading(true);
@@ -71,6 +48,55 @@ export default function AdminPage() {
   useEffect(() => {
     if (authenticated) fetchBookings();
   }, [authenticated, fetchBookings]);
+
+  const locationOptions = useMemo(() => {
+    const seen = new Map<number, string>();
+    for (const b of bookings) {
+      if (b.location && !seen.has(b.locationId)) {
+        seen.set(b.locationId, b.location.name);
+      }
+    }
+    return Array.from(seen.entries())
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .map(([id, name]) => ({ id, name }));
+  }, [bookings]);
+
+  const filteredBookings = useMemo(() => {
+    return bookings.filter((b) => {
+      if (statusFilter === "active") {
+        if (b.status !== "accepted" && b.status !== "reserved") return false;
+      } else if (statusFilter !== "all") {
+        if (b.status !== statusFilter) return false;
+      }
+
+      if (locationFilter !== "all") {
+        if (b.locationId !== Number(locationFilter)) return false;
+      }
+
+      if (dateFrom) {
+        if (b.startAt < dateFrom) return false;
+      }
+      if (dateTo) {
+        const dayEnd = dateTo + "T23:59:59.999Z";
+        if (b.startAt > dayEnd) return false;
+      }
+
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const matches =
+          String(b.id).includes(q) ||
+          b.location?.name?.toLowerCase().includes(q) ||
+          b.location?.city?.toLowerCase().includes(q) ||
+          b.evse?.chargePointName?.toLowerCase().includes(q) ||
+          b.evse?.label?.toLowerCase().includes(q);
+        if (!matches) return false;
+      }
+
+      return true;
+    }).sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime());
+  }, [bookings, statusFilter, locationFilter, dateFrom, dateTo, searchQuery]);
+
+  const filtersActive = statusFilter !== "all" || locationFilter !== "all" || dateFrom !== "" || dateTo !== "" || searchQuery !== "";
 
   if (!authenticated) {
     return (
@@ -111,7 +137,7 @@ export default function AdminPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error || "Cancel failed");
+        alert(data.message || data.error || "Cancel failed");
         return;
       }
       fetchBookings();
@@ -147,8 +173,68 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* Filter bar */}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <input
+          type="text"
+          placeholder="Search by ID, location, charger…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-64 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+        >
+          <option value="all">All statuses</option>
+          <option value="active">Active (accepted + reserved)</option>
+          <option value="accepted">Accepted</option>
+          <option value="reserved">Reserved</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="no-show">No-show</option>
+          <option value="failed">Failed</option>
+        </select>
+        <select
+          value={locationFilter}
+          onChange={(e) => setLocationFilter(e.target.value)}
+          className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+        >
+          <option value="all">All locations</option>
+          {locationOptions.map((loc) => (
+            <option key={loc.id} value={loc.id}>
+              {loc.name}
+            </option>
+          ))}
+        </select>
+        <div className="flex items-center gap-1.5">
+          <label className="text-xs text-gray-500">From</label>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="rounded-md border border-gray-300 bg-white px-2 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          />
+          <label className="text-xs text-gray-500">To</label>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="rounded-md border border-gray-300 bg-white px-2 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          />
+        </div>
+        {filtersActive && (
+          <span className="text-xs text-gray-500">
+            Showing {filteredBookings.length} of {bookings.length} bookings
+          </span>
+        )}
+      </div>
+
       {bookings.length === 0 && !loading ? (
         <p className="text-gray-500">No bookings found.</p>
+      ) : filteredBookings.length === 0 ? (
+        <p className="text-gray-500">No bookings match the current filters.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -165,7 +251,7 @@ export default function AdminPage() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {bookings.map((b) => (
+              {filteredBookings.map((b) => (
                 <tr key={b.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-mono text-xs">{b.id}</td>
                   <td className="px-4 py-3">

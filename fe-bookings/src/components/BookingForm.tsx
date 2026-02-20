@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { COMMON_TIMEZONES, DURATION_OPTIONS, formatPreview, toUTCDate } from "@/lib/date-utils";
+import { DURATION_OPTIONS, formatPreview, toUTCDate, buildTimezoneOptions } from "@/lib/date-utils";
 
 interface Port {
   evseId: number;
@@ -31,10 +31,7 @@ export default function BookingForm({ siteId, siteName, ports, siteTimezone }: B
   const [email, setEmail] = useState("");
   const [timezone, setTimezone] = useState(siteTimezone);
 
-  // Build timezone options, ensuring the site timezone is always included
-  const timezoneOptions = COMMON_TIMEZONES.some((tz) => tz.value === siteTimezone)
-    ? COMMON_TIMEZONES
-    : [{ value: siteTimezone, label: `Site (${siteTimezone})` }, ...COMMON_TIMEZONES];
+  const timezoneOptions = buildTimezoneOptions(siteTimezone);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [noAccount, setNoAccount] = useState(false);

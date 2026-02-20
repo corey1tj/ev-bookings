@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBookings, AmpecoError } from "@/lib/ampeco";
+import { getBookings } from "@/lib/ampeco";
+import { handleApiError } from "@/lib/api-helpers";
 import { requireAdmin } from "@/lib/admin-auth";
 import { enrichBookings } from "@/lib/enrich-bookings";
 
@@ -21,9 +22,6 @@ export async function GET(req: NextRequest) {
     const enriched = await enrichBookings(bookingsRes.data);
     return NextResponse.json(enriched);
   } catch (err) {
-    if (err instanceof AmpecoError) {
-      return NextResponse.json({ error: "Failed to load bookings" }, { status: err.status });
-    }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(err, "Failed to load bookings");
   }
 }

@@ -69,3 +69,51 @@ export function toUTCDate(dateStr: string, timeStr: string, timezone: string): D
   const offsetMs = utcRepr.getTime() - tzRepr.getTime();
   return new Date(utcGuess.getTime() + offsetMs);
 }
+
+/**
+ * Parse an ISO datetime string into local date (YYYY-MM-DD) and time (HH:MM)
+ * strings, localized to the given timezone.
+ */
+export function parseBookingDateTime(isoString: string, timezone: string) {
+  const d = new Date(isoString);
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const timeFmt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return {
+    date: fmt.format(d),
+    time: timeFmt.format(d),
+  };
+}
+
+/**
+ * Compute the duration in minutes between two ISO datetimes,
+ * returning the closest DURATION_OPTIONS value (defaults to "60").
+ */
+export function computeDuration(startAt: string, endAt: string): string {
+  const diff = (new Date(endAt).getTime() - new Date(startAt).getTime()) / 60_000;
+  const match = DURATION_OPTIONS.find((opt) => opt.value === String(diff));
+  return match ? match.value : "60";
+}
+
+/**
+ * Build timezone dropdown options, prepending the site timezone
+ * if it's not already in the common list.
+ */
+export function buildTimezoneOptions(siteTimezone?: string) {
+  if (siteTimezone && !COMMON_TIMEZONES.some((tz) => tz.value === siteTimezone)) {
+    return [
+      { value: siteTimezone, label: `Site (${siteTimezone})` },
+      ...COMMON_TIMEZONES,
+    ];
+  }
+  return COMMON_TIMEZONES;
+}

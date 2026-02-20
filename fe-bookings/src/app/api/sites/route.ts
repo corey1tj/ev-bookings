@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getLocations, AmpecoError } from "@/lib/ampeco";
+import { getLocations } from "@/lib/ampeco";
+import { handleApiError } from "@/lib/api-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -8,15 +9,6 @@ export async function GET() {
     const res = await getLocations();
     return NextResponse.json(res.data);
   } catch (err) {
-    if (err instanceof AmpecoError) {
-      return NextResponse.json(
-        { error: "Failed to load sites" },
-        { status: err.status }
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(err, "Failed to load sites");
   }
 }
